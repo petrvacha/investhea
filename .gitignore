@@ -1,0 +1,7 @@
+venv
+*.egg
+__pycache__
+*.log
+*.pot
+.env
+.idea
