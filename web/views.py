@@ -63,5 +63,5 @@ def account_activation_sent(request):
 
 
 @login_required
-def dashboard():
-    return render("dashboard/dashboard.html", {})
+def dashboard(request):
+    return render(request, "dashboard/dashboard.html")
