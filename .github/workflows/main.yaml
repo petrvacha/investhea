@@ -1,0 +1,51 @@
+name: Main
+
+on: [push, pull_request]
+
+jobs:
+  tests:
+    env:
+      DB_USER: root
+      DB_NAME: database
+      DB_PASSWORD: password
+      DB_HOST: 127.0.0.1
+      DB_PORT: 8888
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: ${{ env.DB_PASSWORD }}
+          MYSQL_DATABASE: ${{ env.DB_NAME }}
+        ports:
+          - 8888:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=3s --health-timeout=2s --health-retries=5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Cache dependency
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      - name: Install requirements
+        run: pip install -r requirements.txt
+
+      - name: Migration
+        run: python manage.py migrate
+
+      - name: Run Test
+        run: python manage.py test
