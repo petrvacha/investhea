@@ -47,5 +47,8 @@ jobs:
       - name: Migration
         run: python manage.py migrate
 
-      - name: Run Test
+      - name: Run linter
+        run: flake8 --statistics --exclude=venv* --ignore=E501
+
+      - name: Run test
         run: python manage.py test
