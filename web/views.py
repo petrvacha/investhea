@@ -2,6 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
 from web.models import User
+from web.models import Security
 from django.contrib.sites.shortcuts import get_current_site
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
@@ -11,6 +12,10 @@ from web.tokens import account_activation_token
 from django.utils.encoding import force_text
 from django.utils.http import urlsafe_base64_decode
 from investhea.settings import EMAIL_HOST_USER
+from investhea.settings import ALPHA_VANTAGE_API_KEY
+from django.contrib.admin.views.decorators import staff_member_required
+from django.http import JsonResponse
+from web.modules.alpha_vantage import AlphaVantageRequestor as avr
 
 
 def home(request):
@@ -65,3 +70,27 @@ def account_activation_sent(request):
 @login_required
 def dashboard(request):
     return render(request, "dashboard/dashboard.html")
+
+
+@staff_member_required
+def admin_dashboard(request):
+    return render(request, "dashboard/admin-dashboard.html")
+
+
+@staff_member_required
+def download_list_of_stocks(request):
+
+    response = {
+        "success": True,
+        "message": "List of Stocks has been successfully updated.",
+    }
+
+    avrequestor = avr(ALPHA_VANTAGE_API_KEY)
+    data = avrequestor.getListOfStocks()
+    try:
+        Security.process_import(data)
+    except AssertionError:
+        response["success"] = False
+        response["message"] = "Problem with the data processing."
+
+    return JsonResponse(response)

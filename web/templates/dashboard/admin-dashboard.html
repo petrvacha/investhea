@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard{% endblock %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div id="admin-dashboard" class="content-section">
+	<h1>Admin Dashboard</h1>
+	<button v-on:click="get({% url 'download_list_of_stocks' %})">Update List of Stocks</button>
+	<div v-if="message" class="alert" :class="{ 'alert-success': isSuccess, 'alert-danger': hasError }">[[ message ]]</div>
+</div>
+
+<script>
+const app = {
+	delimiters: ["[[", "]]"],
+	data() {
+		return {
+			updateListOfStocksResult: null
+		}
+	},
+	methods: {
+		get: function(url){ 
+			axios
+				.get(url)
+				.then(response => (this.updateListOfStocksResult = response))
+		}
+	},
+	computed: {
+		hasError() {
+			return this.updateListOfStocksResult && !this.updateListOfStocksResult.data.success
+		},
+		isSuccess() {
+			return this.updateListOfStocksResult && this.updateListOfStocksResult.data.success
+		},
+		message() {
+			return this.updateListOfStocksResult ? this.updateListOfStocksResult.data.message : ""
+		}
+	}
+}
+Vue.createApp(app).mount('#admin-dashboard')
+</script>
+{% endblock %}
