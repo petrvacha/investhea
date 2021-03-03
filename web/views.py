@@ -3,6 +3,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login
 from web.models import User
 from web.models import Security
+from web.models import Exchange
 from django.contrib.sites.shortcuts import get_current_site
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
@@ -16,6 +17,8 @@ from investhea.settings import ALPHA_VANTAGE_API_KEY
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import JsonResponse
 from web.modules.alpha_vantage import AlphaVantageRequestor as avr
+from django.urls import reverse
+from django.db.models import Q
 
 
 def home(request):
@@ -68,8 +71,32 @@ def account_activation_sent(request):
 
 
 @login_required
+def query_ticker_list(request):
+    query = request.GET.get('query', None)
+    if query:
+        start_tickers = list(Security.objects.filter(Q(ticker__istartswith=query)).values())
+        tickers = list(Security.objects.filter(Q(ticker__contains=query) & ~Q(ticker__istartswith=query)).values())
+        names = list(Security.objects.filter(Q(name__contains=query) & ~Q(ticker__istartswith=query) & ~Q(ticker__contains=query)).values())
+
+        response = [*start_tickers, *tickers, *names]
+
+    else:
+        response = []
+    return JsonResponse(response[0:10], safe=False)
+
+
+@login_required
+def query_exchange_list(request):
+    exchanges = list(Exchange.objects.all().values())
+    return JsonResponse(exchanges, safe=False)
+
+
+@login_required
 def dashboard(request):
-    return render(request, "dashboard/dashboard.html")
+    return render(request, "dashboard/dashboard.html", {
+        "var_url_autocomplete_query": reverse(query_ticker_list),
+        "var_url_query_exchange_list": reverse(query_exchange_list),
+    })
 
 
 @staff_member_required

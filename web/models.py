@@ -141,3 +141,23 @@ class UsersSecurities(TimeStampMixin):
     sell_price = models.FloatField(null=True, blank=True)
     sell_time = models.DateTimeField(null=True, blank=True)
     sell_fee = models.FloatField(null=True, blank=True)
+
+
+class UsersMoneyTransaction(TimeStampMixin):
+    DIRECTIONS = [
+        (1, 'INCOME'),
+        (2, 'OUTGOINGS'),
+    ]
+    TRANSACTION_TYPES = [
+        (1, 'FEE'),
+        (2, 'SELL'),
+        (3, 'WITHDRAWAL'),
+        (4, 'DIVIDEND'),
+        (5, 'INCOME'),
+    ]
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    amount = models.FloatField(null=False, blank=False)
+    direction = models.PositiveSmallIntegerField(choices=DIRECTIONS, default=1)
+    transacted_at = models.DateField(null=False, blank=False)
+    transaction_type = models.PositiveSmallIntegerField(choices=TRANSACTION_TYPES, default=1)
+    security = models.ForeignKey(Security, on_delete=models.SET_NULL, null=True)
