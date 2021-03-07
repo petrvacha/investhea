@@ -1,24 +1,22 @@
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
-from django.contrib.auth import login
-from web.models import User
-from web.models import Security
-from web.models import Exchange
-from django.contrib.sites.shortcuts import get_current_site
-from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_encode
-from django.template.loader import render_to_string
-from web.forms import SignUpForm
-from web.tokens import account_activation_token
-from django.utils.encoding import force_text
-from django.utils.http import urlsafe_base64_decode
-from investhea.settings import EMAIL_HOST_USER
-from investhea.settings import ALPHA_VANTAGE_API_KEY
+from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
-from django.http import JsonResponse
-from web.modules.alpha_vantage import AlphaVantageRequestor as avr
+from django.contrib.auth import login
+from django.contrib.auth.decorators import login_required
+from django.contrib.sites.shortcuts import get_current_site
 from django.urls import reverse
 from django.db.models import Q
+from django.http import JsonResponse
+from django.utils.encoding import force_bytes, force_text
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.shortcuts import render, redirect
+from django.template.loader import render_to_string
+from investhea.settings import EMAIL_HOST_USER, ALPHA_VANTAGE_API_KEY
+from web.models import User, Security, Exchange, UsersSecurities
+from web.forms import SignUpForm
+from web.tokens import account_activation_token
+from web.modules.alpha_vantage import AlphaVantageRequestor as avr
+
+import json
 
 
 def home(request):
@@ -77,11 +75,10 @@ def query_ticker_list(request):
         start_tickers = list(Security.objects.filter(Q(ticker__istartswith=query)).values())
         tickers = list(Security.objects.filter(Q(ticker__contains=query) & ~Q(ticker__istartswith=query)).values())
         names = list(Security.objects.filter(Q(name__contains=query) & ~Q(ticker__istartswith=query) & ~Q(ticker__contains=query)).values())
-
         response = [*start_tickers, *tickers, *names]
-
     else:
         response = []
+
     return JsonResponse(response[0:10], safe=False)
 
 
@@ -93,9 +90,34 @@ def query_exchange_list(request):
 
 @login_required
 def dashboard(request):
+    securities = UsersSecurities.objects.filter(user=request.user)
     return render(request, "dashboard/dashboard.html", {
+        "securities": securities
+    })
+
+
+@login_required
+def add_new_holding(request):
+    data = json.loads(request.body.decode('utf-8'))
+    response = []
+    try:
+        data["user"] = request.user
+        UsersSecurities.add(data=data)
+    except AssertionError:
+        response["success"] = False
+        response["message"] = "Problem with the data processing."
+    messages.success(request, 'New holding has been successfully added.')
+    response = ["OK"]
+    return JsonResponse(response, safe=False)
+
+
+@login_required
+def form_new_holding(request):
+    return render(request, "holding/form_new_holding.html", {
         "var_url_autocomplete_query": reverse(query_ticker_list),
         "var_url_query_exchange_list": reverse(query_exchange_list),
+        "var_url_add_new_holding": reverse(add_new_holding),
+        "var_url_dashboard": reverse(dashboard),
     })
 
 

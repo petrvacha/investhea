@@ -5,6 +5,7 @@ from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 import pandas as pd
+from datetime import datetime
 
 
 class Profile(models.Model):
@@ -74,21 +75,27 @@ class TimeStampMixin(models.Model):
 
 
 class Exchange(models.Model):
+    USA = 1
+    CZ = 2
     COUNTRIES = [
         (1, 'USA'),
         (2, 'CZ'),
     ]
     name = models.CharField(max_length=20)
     alternative_name = models.CharField(max_length=50, null=True)
-    country = models.PositiveSmallIntegerField(choices=COUNTRIES, default=1)
+    country = models.PositiveSmallIntegerField(choices=COUNTRIES, default=USA)
 
 
 class Security(TimeStampMixin):
+    STOCK = 1
+    ETF = 2
+    BOND = 3
+    FUND = 4
     TYPES = [
-        (1, 'Stock'),
-        (2, 'ETF'),
-        (3, 'Bond'),
-        (4, 'Fund'),
+        (STOCK, 'Stock'),
+        (ETF, 'ETF'),
+        (BOND, 'Bond'),
+        (FUND, 'Fund'),
     ]
     user = models.ManyToManyField(settings.AUTH_USER_MODEL, through='UsersSecurities')
     ticker = models.CharField(max_length=20)
@@ -99,8 +106,8 @@ class Security(TimeStampMixin):
     status = models.BooleanField(default=True)
     ipo_date = models.DateField(null=True, blank=True)
     delisting_date = models.DateTimeField(null=True, blank=True)
-    exchange = models.ForeignKey(Exchange, on_delete=models.CASCADE, default=1)
-    security_type = models.PositiveSmallIntegerField(choices=TYPES, default=1)
+    exchange = models.ForeignKey(Exchange, on_delete=models.CASCADE, default=Exchange.USA)
+    security_type = models.PositiveSmallIntegerField(choices=TYPES, default=STOCK)
 
     def process_import(data):
         exchanges = Exchange.objects.all()
@@ -123,7 +130,7 @@ class Security(TimeStampMixin):
                 list_exchanges[row[2]] = newExchange
                 security.exchange = list_exchanges[row[2]]
 
-            security.security_type = 1 if row[3] == "Stock" else 2
+            security.security_type = Security.STOCK if row[3] == "Stock" else Security.ETF
             security.ipo_date = row[4]
             if pd.notnull(row[5]) and row[5] != "null":
                 security.delisting_date = row[5]
@@ -132,32 +139,60 @@ class Security(TimeStampMixin):
 
 
 class UsersSecurities(TimeStampMixin):
+    BUY = 1
+    SELL = 2
+    DIRECTIONS = [
+        (BUY, 'BUY'),
+        (SELL, 'SELL'),
+    ]
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     security = models.ForeignKey(Security, on_delete=models.CASCADE)
-    purchase_price = models.FloatField(null=False, blank=False)
-    purchase_time = models.DateTimeField(null=False, blank=False)
-    purchase_fee = models.FloatField(null=False, blank=False)
-    amount = models.IntegerField(null=False, blank=False)
-    sell_price = models.FloatField(null=True, blank=True)
-    sell_time = models.DateTimeField(null=True, blank=True)
-    sell_fee = models.FloatField(null=True, blank=True)
+    price = models.FloatField(null=False, blank=False)
+    date = models.DateTimeField(null=False, blank=False)
+    fee = models.FloatField(null=False, blank=False)
+    quantity = models.IntegerField(null=False, blank=False)
+    direction = models.PositiveSmallIntegerField(choices=DIRECTIONS, default=1, null=False, blank=False)
+
+    def add(data):
+        ticker_string, exchange_string = data["ticker"].split('.')
+        exchange = Exchange.objects.get(name=exchange_string)
+        security = Security.objects.get(ticker=ticker_string, exchange=exchange)
+        users_securities = UsersSecurities()
+        users_securities.user = data["user"]
+        users_securities.security = security
+        users_securities.price = data["price"]
+        users_securities.fee = data["fee"]
+        users_securities.quantity = data["quantity"]
+        users_securities.date = datetime.strptime(data["date"], '%d/ %m/ %Y')
+        users_securities.direction = UsersSecurities.BUY
+        users_securities.save()
 
 
 class UsersMoneyTransaction(TimeStampMixin):
+    DIRECTION_INCOME = 1
+    DIRECTION_OUTGOINGS = 2
+
     DIRECTIONS = [
-        (1, 'INCOME'),
-        (2, 'OUTGOINGS'),
+        (DIRECTION_INCOME, 'INCOME'),
+        (DIRECTION_OUTGOINGS, 'OUTGOINGS'),
     ]
+
+    FEE = 1
+    SELL = 2
+    WITHDRAWAL = 3
+    DIVIDEND = 4
+    INCOME = 5
+
     TRANSACTION_TYPES = [
-        (1, 'FEE'),
-        (2, 'SELL'),
-        (3, 'WITHDRAWAL'),
-        (4, 'DIVIDEND'),
-        (5, 'INCOME'),
+        (FEE, 'FEE'),
+        (SELL, 'SELL'),
+        (WITHDRAWAL, 'WITHDRAWAL'),
+        (DIVIDEND, 'DIVIDEND'),
+        (INCOME, 'INCOME'),
     ]
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     amount = models.FloatField(null=False, blank=False)
-    direction = models.PositiveSmallIntegerField(choices=DIRECTIONS, default=1)
+    direction = models.PositiveSmallIntegerField(choices=DIRECTIONS, default=DIRECTION_INCOME)
     transacted_at = models.DateField(null=False, blank=False)
-    transaction_type = models.PositiveSmallIntegerField(choices=TRANSACTION_TYPES, default=1)
+    transaction_type = models.PositiveSmallIntegerField(choices=TRANSACTION_TYPES, default=FEE)
     security = models.ForeignKey(Security, on_delete=models.SET_NULL, null=True)

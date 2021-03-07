@@ -1,71 +1,13 @@
 {% extends 'base.html' %}
 
 {% block title %}Dashboard{% endblock %}
-{% load crispy_forms_tags %}
+
 
 {% block content %}
 	<div id="dashboard" class="content-section">
 		<h1>Dashboard</h1>
-		<form>
-			<auto-complete></auto-complete>
-		</form>
-	</div>
-
-	{{ var_url_autocomplete_query|json_script:"var_url_autocomplete_query" }}
-	{{ var_url_query_exchange_list|json_script:"var_url_query_exchange_list" }}
-	
-	<script>
-		var var_url_autocomplete_query = JSON.parse(document.getElementById('var_url_autocomplete_query').textContent);
-		var var_url_query_exchange_list = JSON.parse(document.getElementById('var_url_query_exchange_list').textContent);
-
-		const app = Vue.createApp({})
 		
-		app.component('auto-complete', {
-			delimiters: ['[[', ']]'],
-			template:`	
-			<div>
-				<input type="text" placeholder="Enter Ticker Name" v-model="query" @keyup="getData()" autocomplete="off" class="form-control input-lg" />
-				<div class="panel-footer" v-if="search_data.length">
-					<ul class="list-group">
-						<a href="#" class="list-group-item" v-for="data in search_data" @click="getName(data.ticker+'.'+exchanges[data.exchange_id])">
-							[[ data.ticker ]].[[ exchanges[data.exchange_id] ]] ([[ data.name ]])
-						</a>
-					</ul>
-				</div>
-			</div>
-			`,
-			data:function(){
-				return{
-					query: '',
-					search_data: [],
-					exchanges: [],
-				}
-			},
-			methods:{
-				getData:function(){
-					axios.get(var_url_query_exchange_list).then(response => {
-						response.data.forEach(exchange => {
-							this.exchanges[exchange["id"]] = exchange["name"];
-						});
-					});
-
-					axios.get(var_url_autocomplete_query, {
-						params: {
-							query: this.query
-						}
-					}).then(response => {
-						this.search_data = response.data;
-					});
-				},
-				getName:function(name){
-					this.query = name;
-					this.search_data = [];
-				}
-			}
-		});
-
-		app.mount('#dashboard')
-	</script>	
+	</div>
 
 	
 {% endblock %}
