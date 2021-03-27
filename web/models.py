@@ -4,8 +4,6 @@ from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-import pandas as pd
-from datetime import datetime
 
 
 class Profile(models.Model):
@@ -107,35 +105,7 @@ class Security(TimeStampMixin):
     ipo_date = models.DateField(null=True, blank=True)
     delisting_date = models.DateTimeField(null=True, blank=True)
     exchange = models.ForeignKey(Exchange, on_delete=models.CASCADE, default=Exchange.USA)
-    security_type = models.PositiveSmallIntegerField(choices=TYPES, default=STOCK)
-
-    def process_import(data):
-        exchanges = Exchange.objects.all()
-        list_exchanges = {}
-        for exchange in exchanges:
-            list_exchanges[exchange.name] = exchange
-
-        for row in data[1:].itertuples(index=False, name='Pandas'):
-            existingSecurity = Security.objects.filter(ticker=row[0])
-            if existingSecurity.exists():
-                security = existingSecurity.first()
-            else:
-                security = Security()
-            security.ticker = row[0]
-            security.name = row[1]
-            if row[2] in list_exchanges:
-                security.exchange = list_exchanges[row[2]]
-            else:
-                newExchange = Exchange.objects.create(name=row[2])
-                list_exchanges[row[2]] = newExchange
-                security.exchange = list_exchanges[row[2]]
-
-            security.security_type = Security.STOCK if row[3] == "Stock" else Security.ETF
-            security.ipo_date = row[4]
-            if pd.notnull(row[5]) and row[5] != "null":
-                security.delisting_date = row[5]
-            security.status = True if row[6] == "Active" else False
-            security.save()
+    security_type = models.PositiveSmallIntegerField(choices=TYPES, default=STOCK, null=False, blank=False)
 
 
 class UsersSecurities(TimeStampMixin):
@@ -151,21 +121,7 @@ class UsersSecurities(TimeStampMixin):
     date = models.DateTimeField(null=False, blank=False)
     fee = models.FloatField(null=False, blank=False)
     quantity = models.IntegerField(null=False, blank=False)
-    direction = models.PositiveSmallIntegerField(choices=DIRECTIONS, default=1, null=False, blank=False)
-
-    def add(data):
-        ticker_string, exchange_string = data["ticker"].split('.')
-        exchange = Exchange.objects.get(name=exchange_string)
-        security = Security.objects.get(ticker=ticker_string, exchange=exchange)
-        users_securities = UsersSecurities()
-        users_securities.user = data["user"]
-        users_securities.security = security
-        users_securities.price = data["price"]
-        users_securities.fee = data["fee"]
-        users_securities.quantity = data["quantity"]
-        users_securities.date = datetime.strptime(data["date"], '%d/ %m/ %Y')
-        users_securities.direction = UsersSecurities.BUY
-        users_securities.save()
+    direction = models.PositiveSmallIntegerField(choices=DIRECTIONS, null=False, blank=False)
 
 
 class UsersMoneyTransaction(TimeStampMixin):

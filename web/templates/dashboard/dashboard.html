@@ -2,12 +2,37 @@
 
 {% block title %}Dashboard{% endblock %}
 
-
 {% block content %}
-	<div id="dashboard" class="content-section">
-		<h1>Dashboard</h1>
-		
-	</div>
+<div class="content-section">
+	<h1>Dashboard</h1>
+</div>
 
-	
+<table class="table table-sm table-hover table-bordered">
+	<thead>
+	  <tr>
+		<th scope="col">Security</th>
+		<th scope="col">Quantity</th>
+		<th scope="col">Purchased price</th>
+		<th scope="col">Purchased value</th>
+		<th scope="col">Purchased date</th>
+		<th scope="col">Current price</th>
+		<th scope="col">Gain</th>
+		<th scope="col">Net Value</th>
+		<th scope="col">Net Gain</th>
+	  </tr>
+	</thead>
+	<tbody>
+		{% for ticker, value in securities.currents.items %}
+			{% for transaction in value %}
+				<tr>
+					<td title="{{ transaction.company_name }}">{{ ticker }}</td>
+					<td>{{ transaction.quantity }}</td>
+					<td>{{ transaction.purchased_price }}</td>
+					<td>{{ transaction.purchased_value }}</td>
+					<td>{{ transaction.date|date:"d.m.Y" }}</td>
+				</tr>
+			{% endfor %}
+	  	{% endfor %}
+	</tbody>
+  </table>
 {% endblock %}

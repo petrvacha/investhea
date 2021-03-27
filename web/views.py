@@ -11,10 +11,12 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.shortcuts import render, redirect
 from django.template.loader import render_to_string
 from investhea.settings import EMAIL_HOST_USER, ALPHA_VANTAGE_API_KEY
-from web.models import User, Security, Exchange, UsersSecurities
+from web.models import User, Security, Exchange
 from web.forms import SignUpForm
 from web.tokens import account_activation_token
 from web.modules.alpha_vantage import AlphaVantageRequestor as avr
+from web.services.security import process_import
+from web.services.users_securities import buy_security, get_users_securities
 
 import json
 
@@ -90,7 +92,8 @@ def query_exchange_list(request):
 
 @login_required
 def dashboard(request):
-    securities = UsersSecurities.objects.filter(user=request.user)
+    securities = get_users_securities(user=request.user)
+    print(securities['currents'])
     return render(request, "dashboard/dashboard.html", {
         "securities": securities
     })
@@ -99,13 +102,19 @@ def dashboard(request):
 @login_required
 def add_new_holding(request):
     data = json.loads(request.body.decode('utf-8'))
-    response = []
+    response = {}
     try:
-        data["user"] = request.user
-        UsersSecurities.add(data=data)
+        buy_security(
+            ticker=data["ticker"],
+            user=request.user,
+            price=data["price"],
+            fee=data["fee"],
+            quantity=data["quantity"],
+            date=data["date"],
+        )
     except AssertionError:
         response["success"] = False
-        response["message"] = "Problem with the data processing."
+        response["message"] = "Problem with adding the new holding."
     messages.success(request, 'New holding has been successfully added.')
     response = ["OK"]
     return JsonResponse(response, safe=False)
@@ -137,7 +146,7 @@ def download_list_of_stocks(request):
     avrequestor = avr(ALPHA_VANTAGE_API_KEY)
     data = avrequestor.getListOfStocks()
     try:
-        Security.process_import(data)
+        process_import(data)
     except AssertionError:
         response["success"] = False
         response["message"] = "Problem with the data processing."
