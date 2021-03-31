@@ -1,5 +1,6 @@
 from web.models import Exchange, UsersSecurities, User, Security
 from datetime import datetime
+from django.db.models import Sum
 
 
 def create_users_security(*,
@@ -8,7 +9,7 @@ def create_users_security(*,
                           price: float,
                           fee: float,
                           quantity: int,
-                          date: str,
+                          date: datetime.date,
                           direction: int,) -> UsersSecurities:
     ticker_string, exchange_string = ticker.split('.')
 
@@ -21,8 +22,8 @@ def create_users_security(*,
     users_securities.price = price
     users_securities.fee = fee
     users_securities.quantity = quantity
-    users_securities.date = datetime.strptime(date, '%d/ %m/ %Y')
-    users_securities.direction = UsersSecurities.BUY
+    users_securities.date = date
+    users_securities.direction = direction
     users_securities.full_clean()
     users_securities.save()
 
@@ -35,7 +36,7 @@ def buy_security(*,
                  price: float,
                  fee: float,
                  quantity: int,
-                 date: str,) -> UsersSecurities:
+                 date: datetime.date,) -> UsersSecurities:
     return create_users_security(ticker=ticker,
                                  user=user,
                                  price=price,
@@ -45,46 +46,89 @@ def buy_security(*,
                                  direction=UsersSecurities.BUY)
 
 
+def is_sell_number_okay(*,
+                        user: User,
+                        ticker: str,
+                        quantity: int,) -> bool:
+    ticker_string, exchange_string = ticker.split('.')
+    exchange = Exchange.objects.get(name=exchange_string)
+    security = Security.objects.get(ticker=ticker_string, exchange=exchange)
+    result = UsersSecurities.objects.filter(user=user, security=security).aggregate(Sum('quantity'))
+
+    if result['quantity__sum'] is None:
+        return False
+    else:
+        return result['quantity__sum'] >= quantity
+
+
+def sell_security(*,
+                  ticker: str,
+                  user: User,
+                  price: float,
+                  fee: float,
+                  quantity: int,
+                  date: datetime.date,) -> UsersSecurities:
+    return create_users_security(ticker=ticker,
+                                 user=user,
+                                 price=price,
+                                 fee=fee,
+                                 quantity=quantity,
+                                 date=date,
+                                 direction=UsersSecurities.SELL)
+
+
 def get_users_securities(*,
                          user: User,) -> dict:
     users_securities = UsersSecurities.objects.filter(user=user).order_by('date')
 
-    results = {'transactions': {}, 'currents': {}}
+    results = {'transactions': {}, 'hold': {}, 'sold': {}, 'ticker_info': {}}
 
     for transaction in users_securities:
-        ticker_name = transaction.security.ticker
-        if ticker_name not in results['transactions'].keys():
-            results['transactions'][ticker_name] = []
-            results['currents'][ticker_name] = []
+        ticker = transaction.security.ticker + '.' + transaction.security.exchange.name
+        if ticker not in results['transactions'].keys():
+            results['transactions'][ticker] = []
+            results['ticker_info'][ticker] = {
+                'ticker_name': ticker,
+                'company_name': transaction.security.name,
+            }
 
-        transaction_data = {'ticker': ticker_name,
-                            'company_name': transaction.security.name,
-                            'quantity': transaction.quantity,
-                            'purchased_price': transaction.price,
+        transaction_data = {'quantity': transaction.quantity,
                             'purchased_value': transaction.price * transaction.quantity,
-                            'date': transaction.date}
+                            'fee': transaction.fee,
+                            'date': transaction.date,
+                            'direction': transaction.direction,
+                            }
 
-        results['transactions'][ticker_name].append(transaction_data)
+        results['transactions'][ticker].append(transaction_data)
 
-        if transaction.direction == UsersSecurities.BUY:
-            results['currents'][ticker_name].insert(0, transaction_data)
+    for ticker in results['transactions']:
+        total_quantity = 0
+        total_cost = 0
+        total_fee = 0
+        last_fee = 0
+        for transaction_data in results['transactions'][ticker]:
+            if transaction_data['direction'] == UsersSecurities.BUY:
+                total_quantity += transaction_data['quantity']
+                total_cost -= transaction_data['purchased_value']
+            else:
+                total_quantity -= transaction_data['quantity']
+                total_cost += transaction_data['purchased_value']
+            last_fee = transaction_data['fee']
+            total_fee += last_fee
+
+        if total_quantity > 0:
+            results['hold'][ticker] = {
+                'total_quantity': total_quantity,
+                'total_cost': total_cost,
+                'total_fee': total_cost,
+                'last_fee': last_fee,
+            }
         else:
-            remove_items = []
-            count_diff = transaction.quantity
-
-            for i, previous_transaction in enumerate(results['currents'][ticker_name]):
-                count_diff = count_diff - previous_transaction.quantity
-                if count_diff == 0:
-                    remove_items.insert(0, i)
-                    break
-                elif count_diff > 0:
-                    remove_items.insert(0, i)
-                    continue
-                else:
-                    results['currents'][ticker_name][i]['quantity'] = -1 * count_diff
-                    break
-
-            for i in remove_items:
-                del results['currents'][ticker_name][i]
+            results['sold'][ticker] = {
+                'quantity': total_quantity,
+                'total_cost': total_cost,
+                'total_fee': total_cost,
+                'last_fee': last_fee,
+            }
 
     return results

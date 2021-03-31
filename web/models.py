@@ -107,6 +107,9 @@ class Security(TimeStampMixin):
     exchange = models.ForeignKey(Exchange, on_delete=models.CASCADE, default=Exchange.USA)
     security_type = models.PositiveSmallIntegerField(choices=TYPES, default=STOCK, null=False, blank=False)
 
+    def __str__(self):
+        return self.ticker + '.' + self.exchange.name
+
 
 class UsersSecurities(TimeStampMixin):
     BUY = 1
@@ -118,7 +121,7 @@ class UsersSecurities(TimeStampMixin):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     security = models.ForeignKey(Security, on_delete=models.CASCADE)
     price = models.FloatField(null=False, blank=False)
-    date = models.DateTimeField(null=False, blank=False)
+    date = models.DateField(null=False, blank=False)
     fee = models.FloatField(null=False, blank=False)
     quantity = models.IntegerField(null=False, blank=False)
     direction = models.PositiveSmallIntegerField(choices=DIRECTIONS, null=False, blank=False)

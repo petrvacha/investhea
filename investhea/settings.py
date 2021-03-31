@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'crispy_forms',
     'web.apps.WebConfig',
+    'widget_tweaks',
 ]
 
 MIDDLEWARE = [
@@ -153,3 +154,5 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 EMAIL_USE_TLS = True
 
 ALPHA_VANTAGE_API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
+
+DATE_INPUT_FORMAT = '%d/%m/%Y'

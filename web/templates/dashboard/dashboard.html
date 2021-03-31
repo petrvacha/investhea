@@ -12,26 +12,27 @@
 	  <tr>
 		<th scope="col">Security</th>
 		<th scope="col">Quantity</th>
-		<th scope="col">Purchased price</th>
-		<th scope="col">Purchased value</th>
+		<th scope="col">Current price</th>
+		<th scope="col">Value</th>
 		<th scope="col">Purchased date</th>
 		<th scope="col">Current price</th>
 		<th scope="col">Gain</th>
 		<th scope="col">Net Value</th>
 		<th scope="col">Net Gain</th>
+		<th scope="col">Action</th>
 	  </tr>
 	</thead>
 	<tbody>
-		{% for ticker, value in securities.currents.items %}
-			{% for transaction in value %}
-				<tr>
-					<td title="{{ transaction.company_name }}">{{ ticker }}</td>
-					<td>{{ transaction.quantity }}</td>
-					<td>{{ transaction.purchased_price }}</td>
-					<td>{{ transaction.purchased_value }}</td>
-					<td>{{ transaction.date|date:"d.m.Y" }}</td>
-				</tr>
-			{% endfor %}
+		{% for ticker, hold in securities.hold.items %}
+			<tr>
+				<td title="{{ securities.ticker_info|get_item:ticker|get_item:'ticker_name' }}">{{ ticker }}</td>
+				<td> {{ hold|get_item:'total_quantity' }} </td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td><a href="{% url 'form_sell' ticker %}" class="btn btn-danger">sell</button></td>
+			</tr>
 	  	{% endfor %}
 	</tbody>
   </table>

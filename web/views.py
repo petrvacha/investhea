@@ -12,13 +12,20 @@ from django.shortcuts import render, redirect
 from django.template.loader import render_to_string
 from investhea.settings import EMAIL_HOST_USER, ALPHA_VANTAGE_API_KEY
 from web.models import User, Security, Exchange
-from web.forms import SignUpForm
+from web.forms import SellForm, SignUpForm
 from web.tokens import account_activation_token
 from web.modules.alpha_vantage import AlphaVantageRequestor as avr
 from web.services.security import process_import
-from web.services.users_securities import buy_security, get_users_securities
+from web.services.users_securities import buy_security, get_users_securities, sell_security, is_sell_number_okay
+from django.template.defaulttags import register
 
+import datetime
 import json
+
+
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key)
 
 
 def home(request):
@@ -93,7 +100,6 @@ def query_exchange_list(request):
 @login_required
 def dashboard(request):
     securities = get_users_securities(user=request.user)
-    print(securities['currents'])
     return render(request, "dashboard/dashboard.html", {
         "securities": securities
     })
@@ -110,7 +116,7 @@ def add_new_holding(request):
             price=data["price"],
             fee=data["fee"],
             quantity=data["quantity"],
-            date=data["date"],
+            date=datetime.strptime(data["date"], '%d/%m/%Y'),
         )
     except AssertionError:
         response["success"] = False
@@ -127,6 +133,39 @@ def form_new_holding(request):
         "var_url_query_exchange_list": reverse(query_exchange_list),
         "var_url_add_new_holding": reverse(add_new_holding),
         "var_url_dashboard": reverse(dashboard),
+    })
+
+
+@login_required
+def form_sell(request, ticker):
+    if request.method == 'POST':
+        form = SellForm(request.POST)
+
+        if form.is_valid():
+            if is_sell_number_okay(user=request.user, ticker=ticker, quantity=form.cleaned_data['quantity']):
+                sell_security(
+                    ticker=ticker,
+                    user=request.user,
+                    price=form.cleaned_data['price'],
+                    fee=form.cleaned_data['fee'],
+                    quantity=form.cleaned_data['quantity'],
+                    date=form.cleaned_data['date'],
+                )
+                messages.success(request, 'Your holding has been successfully sold.')
+                return redirect('dashboard')
+            else:
+                messages.error(request, 'You sell more than you have.')
+        else:
+            messages.error(request, 'An error occurred.')
+
+    else:
+        form = SellForm(initial={
+            'ticker': ticker
+        },)
+
+    return render(request, "holding/form_sell.html", {
+        "form": form,
+        "ticker": ticker,
     })
 
 

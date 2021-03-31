@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% load widget_tweaks %}
+
+{% block title %}Add new holding{% endblock %}
+
+{% block head_injection %}
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+	<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+{% endblock %}
+
+{% block content %}
+	<div id="dashboard" class="content-section">
+		<h1>Sell</h1>
+		<form method="post">
+			{% csrf_token %}
+
+			{% for field in form.visible_fields %}
+				<div class="form-group">
+				{{ field.label_tag }}
+				{% if field.name == "date" %}
+					{% render_field field id="js-flatpickr" class="form-control" %}
+				{% else %}
+					{% render_field field class="form-control" %}
+				{% endif %}
+				{% if field.help_text %}
+					<small class="form-text text-muted">{{ field.help_text }}</small>
+				{% endif %}
+				</div>
+			{% endfor %}
+
+			<div class="mb-3">
+				<input type="submit" class="btn btn-success" value="Sell Holding" />
+			</div>
+			{% if form.subject.errors %}
+				<ol>
+				{% for error in form.subject.errors %}
+					<li><strong>{{ error|escape }}</strong></li>
+				{% endfor %}
+				</ol>
+			{% endif %}
+			</div>
+		</form>
+	</div>
+
+	<script>
+		now = new Date;
+		flatpickr("#js-flatpickr", {
+			defaultDate: now.getDate() + "/" + (now.getMonth()+1) + "/" + now.getFullYear(),
+			dateFormat: "d/m/Y"
+		});
+	</script>
+{% endblock %}

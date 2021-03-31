@@ -67,9 +67,9 @@
 					quantity: null,
 					price: null,
 					fee: null,
-					date: formattedDate = now.getDate() + "/ " + (now.getMonth()+1) + "/ " + now.getFullYear(),
+					date: formattedDate = now.getDate() + "/" + (now.getMonth()+1) + "/" + now.getFullYear(),
 					flatPickrConfig: {
-						dateFormat: "d/ m/ Y"
+						dateFormat: "d/m/Y"
 					}
 				}
 			},
@@ -103,7 +103,7 @@
 						console.log(err);
                         this.errors.push(err)
                     });
-                    
+
 					e.preventDefault();
 				}
 			}
@@ -159,7 +159,6 @@
 		});
 
 		app.mount('#dashboard')
-	</script>	
+	</script>
 
-	
 {% endblock %}
