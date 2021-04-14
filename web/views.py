@@ -19,7 +19,7 @@ from web.services.security import process_import
 from web.services.users_securities import buy_security, get_users_securities, sell_security, is_sell_number_okay
 from django.template.defaulttags import register
 
-import datetime
+from datetime import datetime
 import json
 
 
