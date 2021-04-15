@@ -1,6 +1,7 @@
 from web.models import Exchange, UsersSecurities, User, Security
 from datetime import datetime
 from django.db.models import Sum
+from django.db.models import ExpressionWrapper, FloatField, F
 
 
 def create_users_security(*,
@@ -132,3 +133,21 @@ def get_users_securities(*,
             }
 
     return results
+
+
+def get_users_transactions(*,
+                           user: User,
+                           ticker: str) -> dict:
+    ticker_string, exchange_string = ticker.split('.')
+    exchange = Exchange.objects.get(name=exchange_string)
+    security = Security.objects.get(ticker=ticker_string, exchange=exchange)
+    transactions = UsersSecurities.objects.filter(user=user, security=security).annotate(value=ExpressionWrapper(F('quantity') * F('price'), output_field=FloatField())).values()
+    # for transaction in transactions:
+    #     transaction
+    return transactions
+
+
+def delete_users_transaction(*,
+                             user: User,
+                             id: int) -> None:
+    UsersSecurities.objects.get(id=id, user=user).delete()

@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Security Transactions{% endblock %}
+
+{% block content %}
+<div class="content-section">
+	<h1>Transactions of IBM</h1>
+</div>
+<div id="security-transactions">
+<table class="table table-sm table-hover table-bordered">
+	<thead>
+	  <tr>
+		<th scope="col">Direction</th>
+		<th scope="col">Quantity</th>
+		<th scope="col">Price</th>
+		<th scope="col">Value</th>
+		<th scope="col">Fee</th>
+		<th scope="col">Action</th>
+	  </tr>
+	</thead>
+	<tbody>
+		<tr v-for="transaction in transactions">
+			<td scope="col">[[ transaction['direction'] ]]</td>
+			<td scope="col">[[ transaction['quantity'] ]]</td>
+			<td scope="col">[[ transaction['price'] ]]</td>
+			<td scope="col">[[ transaction['value'] ]]</td>
+			<td scope="col">[[ transaction['fee'] ]]</td>
+			<td><a href="" class="btn btn-danger">delete</button></td>
+		</tr>
+	</tbody>
+  </table>
+</div>
+
+{{ var_transactions|json_script:"var_transactions" }}
+
+<script>
+	var transactions = JSON.parse(document.getElementById('var_transactions').textContent);
+	const app = {
+		delimiters: ["[[", "]]"],
+		data() {
+			return {
+				transactions: transactions,
+			}
+		},
+	};
+
+	Vue.createApp(app).mount('#security-transactions');
+</script>
+
+{% endblock %}

@@ -25,7 +25,7 @@
 	<tbody>
 		{% for ticker, hold in securities.hold.items %}
 			<tr>
-				<td title="{{ securities.ticker_info|get_item:ticker|get_item:'ticker_name' }}">{{ ticker }}</td>
+				<td title="{{ securities.ticker_info|get_item:ticker|get_item:'ticker_name' }}"><a href="{% url 'security_transactions' ticker %}">{{ ticker }}</a></td>
 				<td> {{ hold|get_item:'total_quantity' }} </td>
 				<td></td>
 				<td></td>
