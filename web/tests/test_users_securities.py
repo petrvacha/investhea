@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from web.models import Exchange, UsersSecurities, Security
-from web.services.users_securities import buy_security, sell_security, is_sell_number_okay
+from web.services.users_securities import buy_security, sell_security, is_sell_number_okay, delete_users_transaction
 
 
 class UsersSecuritiesTest(TestCase):
@@ -72,3 +72,21 @@ class UsersSecuritiesTest(TestCase):
             quantity=10000,)
 
         self.assertFalse(result)
+
+    def test_delete_users_transaction(self):
+        transaction = buy_security(
+            ticker='IBM.NYSE',
+            user=self.user,
+            price=10.0,
+            fee=5.0,
+            quantity=1000,
+            date='2020-12-25')
+
+        transaction = UsersSecurities.objects.filter(user=self.user, id=transaction.pk)
+        self.assertTrue(len(transaction) == 1)
+        delete_users_transaction(
+            transaction_id=transaction[0].pk,
+            user=self.user,)
+
+        transaction = UsersSecurities.objects.filter(user=self.user, id=transaction[0].pk)
+        self.assertTrue(len(transaction) == 0)

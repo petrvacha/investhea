@@ -16,7 +16,7 @@ from web.forms import SellForm, SignUpForm
 from web.tokens import account_activation_token
 from web.modules.alpha_vantage import AlphaVantageRequestor as avr
 from web.services.security import process_import
-from web.services.users_securities import buy_security, get_users_securities, sell_security, is_sell_number_okay, get_users_transactions
+from web.services.users_securities import buy_security, get_users_securities, sell_security, is_sell_number_okay, get_users_transactions, delete_users_transaction
 from django.template.defaulttags import register
 from django.core.exceptions import ObjectDoesNotExist
 
@@ -199,19 +199,23 @@ def security_transactions(request, ticker):
     transactions = get_users_transactions(user=request.user, ticker=ticker)
 
     return render(request, "security_transactions/security_transactions.html", {
-        "var_transactions": list(transactions)
+        "var_transactions": list(transactions),
+        "var_url_delete_users_transaction": reverse(delete_users_transaction_action)
     })
 
 
 @staff_member_required
-def delete_users_transaction(request, id):
+def delete_users_transaction_action(request):
+    data = json.loads(request.body.decode('utf-8'))
+    transaction_id = data["transaction_id"]
+
     response = {
         "success": True,
         "message": "The transaction has been successfully deleted.",
     }
 
     try:
-        delete_users_transaction(user=request.user, id=id)
+        delete_users_transaction(user=request.user, transaction_id=transaction_id)
     except ObjectDoesNotExist:
         response["success"] = False
         response["message"] = "The transaction does not exist."

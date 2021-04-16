@@ -2,9 +2,13 @@
 
 {% block title %}Security Transactions{% endblock %}
 
+{% block head_injection %}
+	<script src="https://cdn.jsdelivr.net/npm/js-cookie@2.2.1/src/js.cookie.min.js"></script>
+{% endblock %}
+
 {% block content %}
 <div class="content-section">
-	<h1>Transactions of IBM</h1>
+	<h1>Transactions with IBM</h1>
 </div>
 <div id="security-transactions">
 <table class="table table-sm table-hover table-bordered">
@@ -19,28 +23,54 @@
 	  </tr>
 	</thead>
 	<tbody>
-		<tr v-for="transaction in transactions">
+		<tr v-for="(transaction, index) in transactions">
 			<td scope="col">[[ transaction['direction'] ]]</td>
 			<td scope="col">[[ transaction['quantity'] ]]</td>
 			<td scope="col">[[ transaction['price'] ]]</td>
 			<td scope="col">[[ transaction['value'] ]]</td>
 			<td scope="col">[[ transaction['fee'] ]]</td>
-			<td><a href="" class="btn btn-danger">delete</button></td>
+			<td><button v-on:click="deleteTransaction(transaction['id'], index)" class="btn btn-danger">delete</button></td>
 		</tr>
 	</tbody>
   </table>
 </div>
 
 {{ var_transactions|json_script:"var_transactions" }}
+{{ var_url_delete_users_transaction|json_script:"var_url_delete_users_transaction" }}
 
 <script>
 	var transactions = JSON.parse(document.getElementById('var_transactions').textContent);
+	var url_delete_users_transaction = JSON.parse(document.getElementById('var_url_delete_users_transaction').textContent);
+
 	const app = {
 		delimiters: ["[[", "]]"],
 		data() {
 			return {
 				transactions: transactions,
 			}
+		},
+		methods: {
+			deleteTransaction: function(transaction_id, index){
+				var postData = {
+						transaction_id: transaction_id,
+                    };
+
+                    let axiosConfig = {
+                        headers: {
+                            'Content-Type': 'application/json;charset=UTF-8',
+                            'X-CSRFToken': Cookies.get('csrftoken')
+                        }
+                    };
+
+                    axios.post(url_delete_users_transaction, postData, axiosConfig)
+                    .then((res) => {
+						this.transactions.splice(index, 1);
+                    })
+                    .catch((err) => {
+						console.log(err);
+                        this.errors.push(err)
+                    });
+			},
 		},
 	};
 

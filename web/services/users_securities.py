@@ -142,12 +142,10 @@ def get_users_transactions(*,
     exchange = Exchange.objects.get(name=exchange_string)
     security = Security.objects.get(ticker=ticker_string, exchange=exchange)
     transactions = UsersSecurities.objects.filter(user=user, security=security).annotate(value=ExpressionWrapper(F('quantity') * F('price'), output_field=FloatField())).values()
-    # for transaction in transactions:
-    #     transaction
     return transactions
 
 
 def delete_users_transaction(*,
                              user: User,
-                             id: int) -> None:
-    UsersSecurities.objects.get(id=id, user=user).delete()
+                             transaction_id: int) -> None:
+    UsersSecurities.objects.get(id=transaction_id, user=user).delete()

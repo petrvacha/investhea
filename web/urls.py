@@ -13,7 +13,7 @@ urlpatterns = [
     path('add-new-holding/', views.add_new_holding, name="add_new_holding"),
     path('form-sell/<str:ticker>/', views.form_sell, name="form_sell"),
     path('security-transactions/<str:ticker>/', views.security_transactions, name="security_transactions"),
-    path('delete-users-transaction/<int:id>/', views.delete_users_transaction, name="delete_users_transaction"),
+    path('delete-users-transaction/', views.delete_users_transaction_action, name="delete_users_transaction_action"),
     path('admin-dashboard/', views.admin_dashboard, name="admin_dashboard"),
     path('download-list-of-stocks/', views.download_list_of_stocks, name="download_list_of_stocks"),
     path('', include('django.contrib.auth.urls')),
