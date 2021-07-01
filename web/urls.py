@@ -15,6 +15,7 @@ urlpatterns = [
     path('security-transactions/<str:ticker>/', views.security_transactions, name="security_transactions"),
     path('delete-users-transaction/', views.delete_users_transaction_action, name="delete_users_transaction_action"),
     path('admin-dashboard/', views.admin_dashboard, name="admin_dashboard"),
+    path('update-list-of-exchanges/', views.update_exchanges, name="update_exchanges"),
     path('download-list-of-stocks/', views.download_list_of_stocks, name="download_list_of_stocks"),
     path('', include('django.contrib.auth.urls')),
     url(r'^account_activation_sent/$', core_views.account_activation_sent, name='account_activation_sent'),

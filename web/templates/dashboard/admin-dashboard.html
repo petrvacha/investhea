@@ -6,7 +6,8 @@
 {% block content %}
 <div id="admin-dashboard" class="content-section">
 	<h1>Admin Dashboard</h1>
-	<button v-on:click="get({% url 'download_list_of_stocks' %})">Update List of Stocks</button>
+	<button v-on:click="get_stocks({% url 'download_list_of_stocks' %})">Update List of Stocks</button>
+	<button v-on:click="get_exchanges({% url 'update_exchanges' %})">Update List of Exchanges</button>
 	<div v-if="message" class="alert" :class="{ 'alert-success': isSuccess, 'alert-danger': hasError }">[[ message ]]</div>
 </div>
 
@@ -15,25 +16,30 @@ const app = {
 	delimiters: ["[[", "]]"],
 	data() {
 		return {
-			updateListOfStocksResult: null
+			result: null
 		}
 	},
 	methods: {
-		get: function(url){ 
+		get_stocks: function(url){
 			axios
 				.get(url)
-				.then(response => (this.updateListOfStocksResult = response))
+				.then(response => (this.result = response))
+		},
+		get_exchanges: function(url){
+			axios
+				.get(url)
+				.then(response => (this.result = response))
 		}
 	},
 	computed: {
 		hasError() {
-			return this.updateListOfStocksResult && !this.updateListOfStocksResult.data.success
+			return this.result && !this.result.data.success
 		},
 		isSuccess() {
-			return this.updateListOfStocksResult && this.updateListOfStocksResult.data.success
+			return this.result && this.result.data.success
 		},
 		message() {
-			return this.updateListOfStocksResult ? this.updateListOfStocksResult.data.message : ""
+			return this.result ? this.result.data.message : ""
 		}
 	}
 }

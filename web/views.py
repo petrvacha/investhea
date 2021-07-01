@@ -16,6 +16,7 @@ from web.forms import SellForm, SignUpForm
 from web.tokens import account_activation_token
 from web.modules.alpha_vantage import AlphaVantageRequestor as avr
 from web.services.security import process_import
+from web.services.exchange import import_exchanges
 from web.services.users_securities import buy_security, get_users_securities, sell_security, is_sell_number_okay, get_users_transactions, delete_users_transaction
 from django.template.defaulttags import register
 from django.core.exceptions import ObjectDoesNotExist
@@ -221,3 +222,14 @@ def delete_users_transaction_action(request):
         response["message"] = "The transaction does not exist."
 
     return JsonResponse(response)
+
+
+@staff_member_required
+def update_exchanges(request):
+    try:
+        import_exchanges()
+        return JsonResponse({"success": True, "message": "List of Exchanges has been successfully updated."})
+    except Exception:
+        response = JsonResponse({"success": False, "message": "Problem with the data processing."})
+        response.status_code = 500
+        return JsonResponse(response, status=500)

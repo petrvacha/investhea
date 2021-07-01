@@ -72,16 +72,29 @@ class TimeStampMixin(models.Model):
         abstract = True
 
 
-class Exchange(models.Model):
-    USA = 1
-    CZ = 2
-    COUNTRIES = [
-        (1, 'USA'),
-        (2, 'CZ'),
-    ]
+class Country(TimeStampMixin):
+    name = models.CharField(max_length=20)
+    active = models.BooleanField(default=True)
+    shortcut = models.CharField(max_length=3, null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['name'], name='unique_country_name')
+        ]
+
+
+class Exchange(TimeStampMixin):
     name = models.CharField(max_length=20)
     alternative_name = models.CharField(max_length=50, null=True)
-    country = models.PositiveSmallIntegerField(choices=COUNTRIES, default=USA)
+    country = models.ForeignKey(Country, on_delete=models.CASCADE)
+    active = models.BooleanField(default=False)
+    time_zone = models.CharField(max_length=40, null=True)
+    sync_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['name'], name='unique_exchange_name')
+        ]
 
 
 class Security(TimeStampMixin):
@@ -89,11 +102,13 @@ class Security(TimeStampMixin):
     ETF = 2
     BOND = 3
     FUND = 4
+    CRYPTO = 5
     TYPES = [
         (STOCK, 'Stock'),
         (ETF, 'ETF'),
         (BOND, 'Bond'),
         (FUND, 'Fund'),
+        (CRYPTO, 'Crypto'),
     ]
     user = models.ManyToManyField(settings.AUTH_USER_MODEL, through='UsersSecurities')
     ticker = models.CharField(max_length=20)
@@ -104,7 +119,7 @@ class Security(TimeStampMixin):
     status = models.BooleanField(default=True)
     ipo_date = models.DateField(null=True, blank=True)
     delisting_date = models.DateTimeField(null=True, blank=True)
-    exchange = models.ForeignKey(Exchange, on_delete=models.CASCADE, default=Exchange.USA)
+    exchange = models.ForeignKey(Exchange, on_delete=models.CASCADE)
     security_type = models.PositiveSmallIntegerField(choices=TYPES, default=STOCK, null=False, blank=False)
 
     def __str__(self):
