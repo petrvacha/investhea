@@ -97,6 +97,18 @@ class Exchange(TimeStampMixin):
         ]
 
 
+class Currency(TimeStampMixin):
+    name = models.CharField(max_length=200)
+    alternative_name = models.CharField(max_length=50)
+    description = models.TextField()
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['name'], name='unique_currency_name')
+        ]
+
+
 class Security(TimeStampMixin):
     STOCK = 1
     ETF = 2

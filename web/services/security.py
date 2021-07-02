@@ -1,5 +1,19 @@
+from twelvedata import TDClient
+from investhea.settings import TWELVE_DATA_API_KEY
+from datetime import datetime
+from django.utils import timezone
 from web.models import Exchange, Security
 import pandas as pd
+
+def import_securities():
+    td = TDClient(apikey=TWELVE_DATA_API_KEY)
+    securities_data = td.get_stocks_list()
+    process_import_securities(securities_data)
+
+
+def process_import_securities(securities_data):
+    sync_timestampt = datetime.now(tz=timezone.utc)
+    db_securities = dict(Security.objects.values_list('name', 'id'))
 
 
 def process_import(data):
