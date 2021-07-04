@@ -109,19 +109,13 @@ class Currency(TimeStampMixin):
         ]
 
 
+class SecurityType(TimeStampMixin):
+    name = models.CharField(max_length=40)
+    show = models.BooleanField(null=True, blank=True)
+    show_as = models.ForeignKey('self', on_delete=models.CASCADE)
+
+
 class Security(TimeStampMixin):
-    STOCK = 1
-    ETF = 2
-    BOND = 3
-    FUND = 4
-    CRYPTO = 5
-    TYPES = [
-        (STOCK, 'Stock'),
-        (ETF, 'ETF'),
-        (BOND, 'Bond'),
-        (FUND, 'Fund'),
-        (CRYPTO, 'Crypto'),
-    ]
     user = models.ManyToManyField(settings.AUTH_USER_MODEL, through='UsersSecurities')
     ticker = models.CharField(max_length=20)
     name = models.CharField(max_length=200)
@@ -132,7 +126,7 @@ class Security(TimeStampMixin):
     ipo_date = models.DateField(null=True, blank=True)
     delisting_date = models.DateTimeField(null=True, blank=True)
     exchange = models.ForeignKey(Exchange, on_delete=models.CASCADE)
-    security_type = models.PositiveSmallIntegerField(choices=TYPES, default=STOCK, null=False, blank=False)
+    security_type = models.ForeignKey(SecurityType, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.ticker + '.' + self.exchange.name
