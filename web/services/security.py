@@ -2,44 +2,34 @@ from twelvedata import TDClient
 from investhea.settings import TWELVE_DATA_API_KEY
 from datetime import datetime
 from django.utils import timezone
-from web.models import Exchange, Security
-import pandas as pd
+from web.models import Exchange, Security, SecurityType
+from django.db import transaction
+
+ALPHA_VANTAGE_SOURCE = 'Aplha Vantage'
+TWELVE_DATA_SOURCE = 'Twelve Data'
+
 
 def import_securities():
     td = TDClient(apikey=TWELVE_DATA_API_KEY)
-    securities_data = td.get_stocks_list()
+    securities_data = td.get_stocks_list().as_json()
     process_import_securities(securities_data)
 
 
 def process_import_securities(securities_data):
     sync_timestampt = datetime.now(tz=timezone.utc)
-    db_securities = dict(Security.objects.values_list('name', 'id'))
-
-
-def process_import(data):
-    exchanges = Exchange.objects.all()
-    list_exchanges = {}
-    for exchange in exchanges:
-        list_exchanges[exchange.name] = exchange
-
-    for row in data[1:].itertuples(index=False, name='Pandas'):
-        existingSecurity = Security.objects.filter(ticker=row[0])
-        if existingSecurity.exists():
-            security = existingSecurity.first()
-        else:
-            security = Security()
-        security.ticker = row[0]
-        security.name = row[1]
-        if row[2] in list_exchanges:
-            security.exchange = list_exchanges[row[2]]
-        else:
-            newExchange = Exchange.objects.create(name=row[2])
-            list_exchanges[row[2]] = newExchange
-            security.exchange = list_exchanges[row[2]]
-
-        security.security_type = Security.STOCK if row[3] == "Stock" else Security.ETF
-        security.ipo_date = row[4]
-        if pd.notnull(row[5]) and row[5] != "null":
-            security.delisting_date = row[5]
-        security.status = True if row[6] == "Active" else False
-        security.save()
+    db_exchanges = dict(Exchange.objects.values_list('name', 'id'))
+    for security in securities_data:
+        with transaction.atomic():
+            security_type, _ = SecurityType.objects.update_or_create(
+                name=security['type'],
+                defaults={'show': False})
+        with transaction.atomic():
+            Security.objects.update_or_create(
+                ticker=security['symbol'],
+                exchange_id=db_exchanges[security['exchange']],
+                defaults={
+                    'name': security['name'],
+                    'data_source': TWELVE_DATA_SOURCE,
+                    'status': True,
+                    'security_type': security_type,
+                    'sync_at': sync_timestampt})

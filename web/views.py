@@ -10,12 +10,11 @@ from django.utils.encoding import force_bytes, force_text
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.shortcuts import render, redirect
 from django.template.loader import render_to_string
-from investhea.settings import EMAIL_HOST_USER, ALPHA_VANTAGE_API_KEY
+from investhea.settings import EMAIL_HOST_USER
 from web.models import User, Security, Exchange
 from web.forms import SellForm, SignUpForm
 from web.tokens import account_activation_token
-from web.modules.alpha_vantage import AlphaVantageRequestor as avr
-from web.services.security import process_import
+from web.services.security import import_securities
 from web.services.exchange import import_exchanges
 from web.services.users_securities import buy_security, get_users_securities, sell_security, is_sell_number_okay, get_users_transactions, delete_users_transaction
 from django.template.defaulttags import register
@@ -179,20 +178,13 @@ def admin_dashboard(request):
 @staff_member_required
 def download_list_of_stocks(request):
 
-    response = {
-        "success": True,
-        "message": "List of Stocks has been successfully updated.",
-    }
-
-    avrequestor = avr(ALPHA_VANTAGE_API_KEY)
-    data = avrequestor.getListOfStocks()
     try:
-        process_import(data)
-    except AssertionError:
-        response["success"] = False
-        response["message"] = "Problem with the data processing."
-
-    return JsonResponse(response)
+        import_securities()
+        return JsonResponse({"success": True, "message": "List of Stocks has been successfully updated."})
+    except Exception:
+        response = JsonResponse({"success": False, "message": "Problem with the data processing."})
+        response.status_code = 500
+        return JsonResponse(response, status=500)
 
 
 @staff_member_required
