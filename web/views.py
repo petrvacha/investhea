@@ -190,8 +190,9 @@ def download_list_of_stocks(request):
 @staff_member_required
 def security_transactions(request, ticker):
     transactions = get_users_transactions(user=request.user, ticker=ticker)
-
+    ticker_string, _ = ticker.split('.')
     return render(request, "security_transactions/security_transactions.html", {
+        "security": ticker_string,
         "var_transactions": list(transactions),
         "var_url_delete_users_transaction": reverse(delete_users_transaction_action)
     })
