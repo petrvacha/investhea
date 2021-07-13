@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Money Transactions{% endblock %}
+
+{% block head_injection %}
+	<script src="https://cdn.jsdelivr.net/npm/js-cookie@2.2.1/src/js.cookie.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="content-section">
+	<h1>Money transactions</h1>
+</div>
+<a class="nav-link" href="{% url 'form_new_money_transactions' %}">Add transaction</a>
+<div id="security-transactions">
+<table class="table table-sm table-hover table-bordered">
+	<thead>
+	  <tr>
+		<th scope="col">Date</th>
+		<th scope="col">Direction</th>
+		<th scope="col">Amount</th>
+		<th scope="col">Transaction type</th>
+		<th scope="col">Note</th>
+		<th scope="col">Action</th>
+	  </tr>
+	</thead>
+	<tbody>
+		<tr v-for="(transaction, index) in transactions">
+			<td scope="col">[[ transaction['formatted_date'] ]]</td>
+			<td scope="col">[[ transaction['direction'] ]]</td>
+			<td scope="col">[[ transaction['amount'] ]]</td>
+			<td scope="col">[[ transaction['transaction_type'] ]]</td>
+			<td scope="col">[[ transaction['note'] ]]</td>
+			<td><button v-on:click="deleteMoneyTransaction(transaction['id'], index)" class="btn btn-danger">delete</button></td>
+		</tr>
+	</tbody>
+  </table>
+</div>
+
+{{ var_transactions|json_script:"var_transactions" }}
+{{ var_url_delete_users_transaction|json_script:"var_url_delete_users_transaction" }}
+
+<script>
+	var transactions = JSON.parse(document.getElementById('var_transactions').textContent);
+	var url_delete_users_transaction = JSON.parse(document.getElementById('var_url_delete_users_transaction').textContent);
+
+	const app = {
+		delimiters: ["[[", "]]"],
+		data() {
+			return {
+				transactions: transactions,
+			}
+		},
+		methods: {
+			deleteMoneyTransaction: function(transaction_id, index){
+				var postData = {
+						transaction_id: transaction_id,
+                    };
+
+                    let axiosConfig = {
+                        headers: {
+                            'Content-Type': 'application/json;charset=UTF-8',
+                            'X-CSRFToken': Cookies.get('csrftoken')
+                        }
+                    };
+
+                    axios.post(url_delete_users_transaction, postData, axiosConfig)
+                    .then((res) => {
+						this.transactions.splice(index, 1);
+                    })
+                    .catch((err) => {
+						console.log(err);
+                        this.errors.push(err)
+                    });
+			},
+		},
+	};
+
+	Vue.createApp(app).mount('#security-transactions');
+</script>
+
+{% endblock %}

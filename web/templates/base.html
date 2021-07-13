@@ -19,8 +19,9 @@
             {% if user.is_authenticated %}
                 {% if user.is_superuser %}
                     <a class="nav-link" href="{% url 'admin_dashboard' %}">Admin Dashboard</a>
-                    <a class="nav-link" href="{% url 'form_new_holding' %}">Add new holding</a>
                 {% endif %}
+                <a class="nav-link" href="{% url 'form_new_holding' %}">Add new holding</a>
+                <a class="nav-link" href="{% url 'money_transactions' %}">Money transactions</a>
                 <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
                 <a class="nav-link" href="{% url 'logout' %}">Log Out</a>
             {% else %}

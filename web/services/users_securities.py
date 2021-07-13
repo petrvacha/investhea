@@ -145,7 +145,5 @@ def get_users_transactions(*,
     return transactions
 
 
-def delete_users_transaction(*,
-                             user: User,
-                             transaction_id: int) -> None:
+def delete_users_security_transaction(*, user: User, transaction_id: int) -> None:
     UsersSecurities.objects.get(id=transaction_id, user=user).delete()

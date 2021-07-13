@@ -11,15 +11,15 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.shortcuts import render, redirect
 from django.template.loader import render_to_string
 from investhea.settings import EMAIL_HOST_USER
-from web.models import User, Security, Exchange
+from web.models import Currency, User, Security, Exchange, UsersMoneyTransaction
 from web.forms import SellForm, SignUpForm
 from web.tokens import account_activation_token
 from web.services.security import import_securities
 from web.services.exchange import import_exchanges
-from web.services.users_securities import buy_security, get_users_securities, sell_security, is_sell_number_okay, get_users_transactions, delete_users_transaction
+from web.services.users_securities import buy_security, get_users_securities, sell_security, is_sell_number_okay, get_users_transactions, delete_users_security_transaction
 from django.template.defaulttags import register
 from django.core.exceptions import ObjectDoesNotExist
-
+from web.services.users_money_transaction import get_money_transactions, delete_money_transaction, add_money_transaction
 from datetime import datetime
 import json
 
@@ -177,14 +177,78 @@ def admin_dashboard(request):
 
 @staff_member_required
 def download_list_of_stocks(request):
-
     try:
         import_securities()
         return JsonResponse({"success": True, "message": "List of Stocks has been successfully updated."})
     except Exception:
-        response = JsonResponse({"success": False, "message": "Problem with the data processing."})
-        response.status_code = 500
+        response = {"success": False, "message": "Problem with the data processing."}
         return JsonResponse(response, status=500)
+
+
+@login_required
+def delete_money_transaction_action(request):
+    data = json.loads(request.body.decode('utf-8'))
+    transaction_id = data["transaction_id"]
+    try:
+        delete_money_transaction(user=request.user, transaction_id=transaction_id)
+        return JsonResponse({"success": True, "message": "The transaction has been successfully deleted."})
+    except Exception:
+        response = {"success": False, "message": "Problem with the data deleting."}
+        return JsonResponse(response, status=500)
+
+
+@staff_member_required
+def money_transactions(request):
+    if request.method == 'GET':
+        transactions = get_money_transactions(user=request.user)
+        return render(request, "money_transactions/money_transactions.html", {
+            "var_transactions": list(transactions),
+            "var_url_delete_users_transaction": reverse(delete_money_transaction_action)
+        })
+    elif request.method == 'POST':
+        data = json.loads(request.body.decode('utf-8'))
+        try:
+            add_money_transaction(user=request.user,
+                                  amount=data.amount,
+                                  currency_id=data.currency_id,
+                                  date=data.date)
+            return JsonResponse({"success": True, "message": "The transaction has been successfully deleted."})
+        except Exception:
+            response = {"success": False, "message": "Problem with the data deleting."}
+            return JsonResponse(response, status=500)
+
+
+@staff_member_required
+def form_new_money_transactions(request):
+    transaction_types = UsersMoneyTransaction.TRANSACTION_TYPES
+    currencies = Currency.objects.all().values_list('id', 'name')
+    return render(request, "money_transactions/form_new_money_transaction.html", {
+        "var_url_users_money_transactions": reverse(money_transactions),
+        "var_url_add_new_money_transaction": reverse(add_new_money_transaction),
+        "transaction_types": transaction_types,
+        "currencies": currencies
+    })
+
+
+@staff_member_required
+def add_new_money_transaction(request):
+    data = json.loads(request.body.decode('utf-8'))
+    response = {}
+    try:
+        add_money_transaction(
+            amount=data["amount"],
+            user=request.user,
+            currency_id=data["currency_id"],
+            transacted_at=datetime.strptime(data["transacted_at"], '%d/%m/%Y'),
+            transaction_type_id=data["transaction_type_id"],
+            note=data["note"],
+        )
+    except AssertionError:
+        response["success"] = False
+        response["message"] = "Problem with adding the new money transaction."
+    messages.success(request, 'New money transaction has been successfully added.')
+    response = ["OK"]
+    return JsonResponse(response, safe=False)
 
 
 @staff_member_required
@@ -194,12 +258,12 @@ def security_transactions(request, ticker):
     return render(request, "security_transactions/security_transactions.html", {
         "security": ticker_string,
         "var_transactions": list(transactions),
-        "var_url_delete_users_transaction": reverse(delete_users_transaction_action)
+        "var_url_delete_users_transaction": reverse(delete_users_security_transaction)
     })
 
 
 @staff_member_required
-def delete_users_transaction_action(request):
+def delete_users_security_transaction_action(request):
     data = json.loads(request.body.decode('utf-8'))
     transaction_id = data["transaction_id"]
 
@@ -209,7 +273,7 @@ def delete_users_transaction_action(request):
     }
 
     try:
-        delete_users_transaction(user=request.user, transaction_id=transaction_id)
+        delete_users_security_transaction(user=request.user, transaction_id=transaction_id)
     except ObjectDoesNotExist:
         response["success"] = False
         response["message"] = "The transaction does not exist."

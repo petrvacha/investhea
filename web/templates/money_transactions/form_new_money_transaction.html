@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Money Transaction{% endblock %}
+
+{% block head_injection %}
+	<link href="https://cdn.jsdelivr.net/npm/flatpickr@4/dist/flatpickr.min.css" rel="stylesheet">
+	<script src="https://cdn.jsdelivr.net/npm/flatpickr@4/dist/flatpickr.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/vue-flatpickr-component@9"></script>
+	<script src="https://cdn.jsdelivr.net/npm/js-cookie@2.2.1/src/js.cookie.min.js"></script>
+{% endblock %}
+
+
+{% block content %}
+<div class="content-section">
+	<h1>Money transactions</h1>
+</div>
+<div id="money-transaction" class="content-section">
+	<form @submit="sendForm">
+		<div class="mb-3">
+			<label class="form-label" for="amount">Amount</label>
+			<input class="form-control" name="amount" type="number" v-model="amount" @blur="addRequired" :required="validation" />
+		</div>
+		<div class="mb-3">
+			<label class="form-label" for="currency_id">Currency</label>
+			<select class="form-control" v-model="currency_id" name="currency_id">
+				{% for id, currency in currencies %}
+					<option value="{{ id }}">{{ currency }}</option>
+				{% endfor %}
+			</select>
+		</div>
+		<div class="mb-3">
+			<label class="form-label" for="transacted_at">Date</label>
+			<flat-pickr class="form-control" name="transacted_at" v-model="transacted_at" :config="flatPickrConfig" type="date" :required="validation">
+			</flat-pickr>
+		</div>
+		<div class="mb-3">
+			<label class="form-label" for="transaction_type_id">Transaction Type</label>
+			<select class="form-control" v-model="transaction_type_id" name="transaction_type_id">
+				{% for id, transaction_type in transaction_types %}
+					<option value="{{ id }}">{{ transaction_type }}</option>
+				{% endfor %}
+			</select>
+		</div>
+		<div class="mb-3">
+			<label class="form-label" for="note">Note</label>
+			<input class="form-control" name="note" type="text" v-model="note" />
+		</div>
+		<div class="mb-3">
+			<input type="submit" class="btn btn-success" value="Add Transaction" />
+		</div>
+		<div v-if="errors">
+			<li v-for="error of errors">
+				{{errors}}
+			</li>
+		</div>
+	</form>
+</div>
+
+
+{{ var_url_users_money_transactions|json_script:"var_url_users_money_transactions" }}
+{{ var_url_add_new_money_transaction|json_script:"var_url_add_new_money_transaction" }}
+
+<script>
+	var var_url_users_money_transactions = JSON.parse(document.getElementById('var_url_users_money_transactions').textContent);
+	var var_url_add_new_money_transaction = JSON.parse(document.getElementById('var_url_add_new_money_transaction').textContent);
+
+	const app = Vue.createApp({
+			data() {
+				now = new Date
+				return {
+					errors: [],
+					validation: false,
+					amount: null,
+					transaction_type_id: 1,
+					currency_id: null,
+					transacted_at: formattedDate = now.getDate() + "/" + (now.getMonth()+1) + "/" + now.getFullYear(),
+					flatPickrConfig: {
+						dateFormat: "d/m/Y"
+					}
+				}
+			},
+			methods:{
+				addRequired: function(e){
+					e.target.setAttribute("required", true);
+				},
+				sendForm: function(e){
+                    this.validation = true;
+
+                    var postData = {
+                        amount: this.amount,
+                        transaction_type_id: this.transaction_type_id,
+                        currency_id: this.currency_id,
+                        transacted_at: this.transacted_at,
+                    };
+
+                    let axiosConfig = {
+                        headers: {
+                            'Content-Type': 'application/json;charset=UTF-8',
+                            'X-CSRFToken': Cookies.get('csrftoken')
+                        }
+                    };
+
+                    axios.post(var_url_add_new_money_transaction, postData, axiosConfig)
+                    .then((res) => {
+                        window.location.href = var_url_users_money_transactions;
+                    })
+                    .catch((err) => {
+						console.log(err);
+                        this.errors.push(err)
+                    });
+
+					e.preventDefault();
+				}
+			}
+		});
+
+		app.component('flat-pickr', VueFlatpickr);
+
+		app.mount('#money-transaction');
+</script>
+
+{% endblock %}

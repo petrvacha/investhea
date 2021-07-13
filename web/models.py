@@ -99,8 +99,10 @@ class Exchange(TimeStampMixin):
 
 class Currency(TimeStampMixin):
     name = models.CharField(max_length=200)
+    symbol = models.CharField(max_length=5, null=True, blank=True)
     alternative_name = models.CharField(max_length=50)
     description = models.TextField()
+    ordering = models.PositiveSmallIntegerField(default=0)
     active = models.BooleanField(default=True)
 
     class Meta:
@@ -162,18 +164,22 @@ class UsersMoneyTransaction(TimeStampMixin):
     SELL = 2
     WITHDRAWAL = 3
     DIVIDEND = 4
-    INCOME = 5
+    DEPOSIT = 5
+    OTHER = 5
 
     TRANSACTION_TYPES = [
-        (FEE, 'FEE'),
-        (SELL, 'SELL'),
-        (WITHDRAWAL, 'WITHDRAWAL'),
-        (DIVIDEND, 'DIVIDEND'),
-        (INCOME, 'INCOME'),
+        (FEE, 'fee'),
+        (SELL, 'sell'),
+        (WITHDRAWAL, 'withdrawal'),
+        (DIVIDEND, 'dividend'),
+        (DEPOSIT, 'deposit'),
+        (OTHER, 'other'),
     ]
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     amount = models.FloatField(null=False, blank=False)
+    currency = models.ForeignKey(Currency, on_delete=models.CASCADE)
     direction = models.PositiveSmallIntegerField(choices=DIRECTIONS, default=DIRECTION_INCOME)
     transacted_at = models.DateField(null=False, blank=False)
     transaction_type = models.PositiveSmallIntegerField(choices=TRANSACTION_TYPES, default=FEE)
-    security = models.ForeignKey(Security, on_delete=models.SET_NULL, null=True)
+    security = models.ForeignKey(Security, on_delete=models.SET_NULL, null=True, blank=True)
+    note = models.TextField(null=True, blank=True)
