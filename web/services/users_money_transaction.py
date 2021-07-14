@@ -1,6 +1,6 @@
 from web.models import Currency, User, UsersMoneyTransaction
 from datetime import datetime
-from django.db.models import F, Func, Value, CharField
+from django.db.models import F, Func, Value, CharField, Sum
 
 
 def add_money_transaction(*,
@@ -39,3 +39,4 @@ def delete_money_transaction(*,
                              user: User,
                              transaction_id: int) -> None:
     UsersMoneyTransaction.objects.get(id=transaction_id, user=user).delete()
+

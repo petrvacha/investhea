@@ -109,7 +109,6 @@ def dashboard(request):
 @login_required
 def add_new_holding(request):
     data = json.loads(request.body.decode('utf-8'))
-    response = {}
     try:
         buy_security(
             ticker=data["ticker"],
@@ -119,12 +118,10 @@ def add_new_holding(request):
             quantity=data["quantity"],
             date=datetime.strptime(data["date"], '%d/%m/%Y'),
         )
-    except AssertionError:
-        response["success"] = False
-        response["message"] = "Problem with adding the new holding."
-    messages.success(request, 'New holding has been successfully added.')
-    response = ["OK"]
-    return JsonResponse(response, safe=False)
+    except Exception:
+        return JsonResponse({"success": False, "message": "Problem with adding the new holding."}, status=500)
+
+    return JsonResponse({"success": True, "message": "New holding has been successfully added."})
 
 
 @login_required
@@ -179,10 +176,11 @@ def admin_dashboard(request):
 def download_list_of_stocks(request):
     try:
         import_securities()
-        return JsonResponse({"success": True, "message": "List of Stocks has been successfully updated."})
     except Exception:
         response = {"success": False, "message": "Problem with the data processing."}
         return JsonResponse(response, status=500)
+
+    return JsonResponse({"success": True, "message": "List of Stocks has been successfully updated."})
 
 
 @login_required
@@ -191,10 +189,11 @@ def delete_money_transaction_action(request):
     transaction_id = data["transaction_id"]
     try:
         delete_money_transaction(user=request.user, transaction_id=transaction_id)
-        return JsonResponse({"success": True, "message": "The transaction has been successfully deleted."})
     except Exception:
         response = {"success": False, "message": "Problem with the data deleting."}
         return JsonResponse(response, status=500)
+
+    return JsonResponse({"success": True, "message": "The transaction has been successfully deleted."})
 
 
 @staff_member_required
@@ -212,11 +211,11 @@ def money_transactions(request):
                                   amount=data.amount,
                                   currency_id=data.currency_id,
                                   date=data.date)
-            return JsonResponse({"success": True, "message": "The transaction has been successfully deleted."})
         except Exception:
             response = {"success": False, "message": "Problem with the data deleting."}
             return JsonResponse(response, status=500)
 
+        return JsonResponse({"success": True, "message": "The transaction has been successfully deleted."})
 
 @staff_member_required
 def form_new_money_transactions(request):
@@ -233,7 +232,6 @@ def form_new_money_transactions(request):
 @staff_member_required
 def add_new_money_transaction(request):
     data = json.loads(request.body.decode('utf-8'))
-    response = {}
     try:
         add_money_transaction(
             amount=data["amount"],
@@ -243,12 +241,10 @@ def add_new_money_transaction(request):
             transaction_type_id=data["transaction_type_id"],
             note=data["note"],
         )
-    except AssertionError:
-        response["success"] = False
-        response["message"] = "Problem with adding the new money transaction."
-    messages.success(request, 'New money transaction has been successfully added.')
-    response = ["OK"]
-    return JsonResponse(response, safe=False)
+    except Exception:
+        return JsonResponse({"success": False, "message": "Problem with adding the new money transaction."}, status=500)
+
+    return JsonResponse({"success": True, "message": "New money transaction has been successfully added."})
 
 
 @staff_member_required
@@ -267,26 +263,19 @@ def delete_users_security_transaction_action(request):
     data = json.loads(request.body.decode('utf-8'))
     transaction_id = data["transaction_id"]
 
-    response = {
-        "success": True,
-        "message": "The transaction has been successfully deleted.",
-    }
-
     try:
         delete_users_security_transaction(user=request.user, transaction_id=transaction_id)
     except ObjectDoesNotExist:
-        response["success"] = False
-        response["message"] = "The transaction does not exist."
+        return JsonResponse({"success": False, "message": "The transaction does not exist."}, status=500)
 
-    return JsonResponse(response)
+    return JsonResponse({"success": True, "message": "The transaction has been successfully deleted."})
 
 
 @staff_member_required
 def update_exchanges(request):
     try:
         import_exchanges()
-        return JsonResponse({"success": True, "message": "List of Exchanges has been successfully updated."})
     except Exception:
-        response = JsonResponse({"success": False, "message": "Problem with the data processing."})
-        response.status_code = 500
-        return JsonResponse(response, status=500)
+        return JsonResponse({"success": False, "message": "Problem with the data processing."}, status=500)
+
+    return JsonResponse({"success": True, "message": "List of exchanges has been successfully updated."})

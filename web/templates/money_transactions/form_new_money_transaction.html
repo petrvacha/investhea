@@ -22,7 +22,7 @@
 		</div>
 		<div class="mb-3">
 			<label class="form-label" for="currency_id">Currency</label>
-			<select class="form-control" v-model="currency_id" name="currency_id">
+			<select class="form-control" v-model="currency_id" name="currency_id" @blur="addRequired" :required="validation">
 				{% for id, currency in currencies %}
 					<option value="{{ id }}">{{ currency }}</option>
 				{% endfor %}
@@ -48,10 +48,10 @@
 		<div class="mb-3">
 			<input type="submit" class="btn btn-success" value="Add Transaction" />
 		</div>
-		<div v-if="errors">
-			<li v-for="error of errors">
-				{{errors}}
-			</li>
+		<div v-if="error">
+			<div class="alert alert-danger" role="alert">
+				[[ error ]]
+			</div>
 		</div>
 	</form>
 </div>
@@ -65,14 +65,16 @@
 	var var_url_add_new_money_transaction = JSON.parse(document.getElementById('var_url_add_new_money_transaction').textContent);
 
 	const app = Vue.createApp({
+			delimiters: ['[[', ']]'],
 			data() {
 				now = new Date
 				return {
-					errors: [],
+					error: "",
 					validation: false,
 					amount: null,
 					transaction_type_id: 1,
 					currency_id: null,
+					note: "",
 					transacted_at: formattedDate = now.getDate() + "/" + (now.getMonth()+1) + "/" + now.getFullYear(),
 					flatPickrConfig: {
 						dateFormat: "d/m/Y"
@@ -91,6 +93,7 @@
                         transaction_type_id: this.transaction_type_id,
                         currency_id: this.currency_id,
                         transacted_at: this.transacted_at,
+                        note: this.note,
                     };
 
                     let axiosConfig = {
@@ -104,9 +107,13 @@
                     .then((res) => {
                         window.location.href = var_url_users_money_transactions;
                     })
-                    .catch((err) => {
-						console.log(err);
-                        this.errors.push(err)
+                    .catch((error) => {
+						console.log(error)
+						if (error.response.data.message !== "undefined") {
+							this.error = error.response.data.message
+						} else {
+							this.error = error.message
+						}
                     });
 
 					e.preventDefault();
