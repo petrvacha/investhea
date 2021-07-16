@@ -6,9 +6,32 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 
+class TimeStampMixin(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+
+
+class Currency(TimeStampMixin):
+    name = models.CharField(max_length=200)
+    symbol = models.CharField(max_length=5, null=True, blank=True)
+    alternative_name = models.CharField(max_length=50)
+    description = models.TextField()
+    ordering = models.PositiveSmallIntegerField(default=0)
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['name'], name='unique_currency_name')
+        ]
+
+
 class Profile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     email_confirmed = models.BooleanField(default=False)
+    currency = models.ForeignKey(Currency, on_delete=models.SET_NULL, null=True, blank=True)
 
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
@@ -64,14 +87,6 @@ class User(AbstractUser):
     objects = UserManager()
 
 
-class TimeStampMixin(models.Model):
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        abstract = True
-
-
 class Country(TimeStampMixin):
     name = models.CharField(max_length=20)
     active = models.BooleanField(default=True)
@@ -94,20 +109,6 @@ class Exchange(TimeStampMixin):
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['name'], name='unique_exchange_name')
-        ]
-
-
-class Currency(TimeStampMixin):
-    name = models.CharField(max_length=200)
-    symbol = models.CharField(max_length=5, null=True, blank=True)
-    alternative_name = models.CharField(max_length=50)
-    description = models.TextField()
-    ordering = models.PositiveSmallIntegerField(default=0)
-    active = models.BooleanField(default=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['name'], name='unique_currency_name')
         ]
 
 

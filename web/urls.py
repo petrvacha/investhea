@@ -7,6 +7,7 @@ urlpatterns = [
     path('', views.home, name="home"),
     path('register/', views.register, name="register"),
     path('dashboard/', views.dashboard, name="dashboard"),
+    path('users-settings/', views.users_settings, name="users_settings"),
     path('query-ticker-list/', views.query_ticker_list, name="query_ticker_list"),
     path('query-exchange-list/', views.query_exchange_list, name="query_exchange_list"),
     path('form-new-holding/', views.form_new_holding, name="form_new_holding"),

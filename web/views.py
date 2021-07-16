@@ -15,11 +15,12 @@ from web.models import Currency, User, Security, Exchange, UsersMoneyTransaction
 from web.forms import SellForm, SignUpForm
 from web.tokens import account_activation_token
 from web.services.security import import_securities
+from web.services.settings import save_settings
 from web.services.exchange import import_exchanges
 from web.services.users_securities import buy_security, get_users_securities, sell_security, is_sell_number_okay, get_users_transactions, delete_users_security_transaction
 from django.template.defaulttags import register
 from django.core.exceptions import ObjectDoesNotExist
-from web.services.users_money_transaction import get_money_transactions, delete_money_transaction, add_money_transaction
+from web.services.users_money_transaction import get_money_transactions, delete_money_transaction, add_money_transaction, get_free_cash
 from datetime import datetime
 import json
 
@@ -101,8 +102,10 @@ def query_exchange_list(request):
 @login_required
 def dashboard(request):
     securities = get_users_securities(user=request.user)
+    free_cash = get_free_cash(user=request.user)
     return render(request, "dashboard/dashboard.html", {
-        "securities": securities
+        "securities": securities,
+        "free_cash": free_cash
     })
 
 
@@ -196,7 +199,7 @@ def delete_money_transaction_action(request):
     return JsonResponse({"success": True, "message": "The transaction has been successfully deleted."})
 
 
-@staff_member_required
+@login_required
 def money_transactions(request):
     if request.method == 'GET':
         transactions = get_money_transactions(user=request.user)
@@ -217,7 +220,8 @@ def money_transactions(request):
 
         return JsonResponse({"success": True, "message": "The transaction has been successfully deleted."})
 
-@staff_member_required
+
+@login_required
 def form_new_money_transactions(request):
     transaction_types = UsersMoneyTransaction.TRANSACTION_TYPES
     currencies = Currency.objects.all().values_list('id', 'name')
@@ -229,7 +233,7 @@ def form_new_money_transactions(request):
     })
 
 
-@staff_member_required
+@login_required
 def add_new_money_transaction(request):
     data = json.loads(request.body.decode('utf-8'))
     try:
@@ -247,7 +251,7 @@ def add_new_money_transaction(request):
     return JsonResponse({"success": True, "message": "New money transaction has been successfully added."})
 
 
-@staff_member_required
+@login_required
 def security_transactions(request, ticker):
     transactions = get_users_transactions(user=request.user, ticker=ticker)
     ticker_string, _ = ticker.split('.')
@@ -258,7 +262,7 @@ def security_transactions(request, ticker):
     })
 
 
-@staff_member_required
+@login_required
 def delete_users_security_transaction_action(request):
     data = json.loads(request.body.decode('utf-8'))
     transaction_id = data["transaction_id"]
@@ -279,3 +283,20 @@ def update_exchanges(request):
         return JsonResponse({"success": False, "message": "Problem with the data processing."}, status=500)
 
     return JsonResponse({"success": True, "message": "List of exchanges has been successfully updated."})
+
+
+@login_required
+def users_settings(request):
+    if request.method == 'GET':
+        currencies = Currency.objects.all().values_list('id', 'name')
+        return render(request, "users_settings/users_settings.html", {
+            "currencies": currencies,
+        })
+    elif request.method == 'POST':
+        data = json.loads(request.body.decode('utf-8'))
+        save_settings(user=request.user,
+                      first_name=data['first_name'],
+                      last_name=data['last_name'],
+                      currency_id=data['currency_id'],
+                      email=data['email'],)
+        return JsonResponse({"success": True, "message": "Settings has been successfully updated."})

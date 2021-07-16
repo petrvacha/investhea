@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% load widget_tweaks %}
+
+{% block title %}Settings{% endblock %}
+
+{% block head_injection %}
+<script src="https://cdn.jsdelivr.net/npm/js-cookie@2.2.1/src/js.cookie.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div id="settings" class="content-section">
+	<h1>Settings</h1>
+	<form @submit="sendForm">
+		<div class="mb-3">
+			<label class="form-label" for="first_name">First name</label>
+			<input class="form-control" name="first_name" type="text" v-model="first_name" />
+		</div>
+		<div class="mb-3">
+			<label class="form-label" for="last_name">Last name</label>
+			<input class="form-control" name="last_name" type="text" v-model="last_name" />
+		</div>
+		<div class="mb-3">
+			<label class="form-label" for="email">Email</label>
+			<input class="form-control" name="email" type="email" v-model="email" :required="validation" />
+		</div>
+		<div class="mb-3">
+			<label class="form-label" for="currency_id">Default currency</label>
+			<select class="form-control" v-model="currency_id" name="currency_id" @blur="addRequired">
+				{% for id, currency in currencies %}
+					<option value="{{ id }}">{{ currency }}</option>
+				{% endfor %}
+			</select>
+		</div>
+		<div class="mb-3">
+			<input type="submit" class="btn btn-success" value="Save" />
+		</div>
+		<div v-if="success">
+			<div class="alert alert-success" role="alert">
+				[[ success ]]
+			</div>
+		</div>
+		<div v-if="error">
+			<div class="alert alert-danger" role="alert">
+				[[ error ]]
+			</div>
+		</div>
+	</form>
+</div>
+
+{{ request.path|json_script:"var_url_current_path" }}
+{{ user.first_name|json_script:"first_name" }}
+{{ user.last_name|json_script:"last_name" }}
+{{ user.profile.currency_id|json_script:"currency_id" }}
+{{ user.email|json_script:"email" }}
+
+<script>
+	var var_url_current_path = JSON.parse(document.getElementById('var_url_current_path').textContent);
+	var first_name = JSON.parse(document.getElementById('first_name').textContent);
+	var last_name = JSON.parse(document.getElementById('last_name').textContent);
+	var currency_id = JSON.parse(document.getElementById('currency_id').textContent);
+	var email = JSON.parse(document.getElementById('email').textContent);
+
+	const app = Vue.createApp({
+			delimiters: ['[[', ']]'],
+			data() {
+				return {
+					error: "",
+					success: "",
+					validation: false,
+					first_name: first_name,
+					last_name: last_name,
+					currency_id: currency_id,
+					email: email,
+				}
+			},
+			methods:{
+				addRequired: function(e){
+					e.target.setAttribute("required", true);
+				},
+				sendForm: function(e){
+                    this.validation = true;
+
+                    var postData = {
+                        first_name: this.first_name,
+                        last_name: this.last_name,
+                        currency_id: this.currency_id,
+                        email: this.email,
+                    };
+
+                    let axiosConfig = {
+                        headers: {
+                            'Content-Type': 'application/json;charset=UTF-8',
+                            'X-CSRFToken': Cookies.get('csrftoken')
+                        }
+                    };
+
+                    axios.post(var_url_current_path, postData, axiosConfig)
+                    .then((res) => {
+                        this.success = "Settings has been updated.";
+						this.error = "";
+                    })
+                    .catch((error) => {
+						console.log(error)
+						if (error.response.data.message !== "undefined") {
+							this.error = error.response.data.message
+						} else {
+							this.error = error.message
+						}
+                    });
+
+					e.preventDefault();
+				}
+			}
+		});
+
+		app.mount('#settings');
+</script>
+
+{% endblock %}

@@ -27,8 +27,7 @@ def add_money_transaction(*,
     return users_money_transaction
 
 
-def get_money_transactions(*,
-                           user: User,) -> dict:
+def get_money_transactions(*, user: User,) -> dict:
     return UsersMoneyTransaction.objects.filter(user=user).annotate(formatted_date=Func(F('transacted_at'),
                                                                                         Value('%d/%m/%Y'),
                                                                                         function='DATE_FORMAT',
@@ -40,3 +39,7 @@ def delete_money_transaction(*,
                              transaction_id: int) -> None:
     UsersMoneyTransaction.objects.get(id=transaction_id, user=user).delete()
 
+
+def get_free_cash(*, user: User) -> int:
+    free_cash = UsersMoneyTransaction.objects.filter(user=user).values('currency_id').annotate(sum=Sum('amount'))
+    return free_cash
